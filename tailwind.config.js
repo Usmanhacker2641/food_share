@@ -1,0 +1,98 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#EBF5F0',
+          100: '#D7EBE1',
+          200: '#C3E0D3',
+          300: '#A8D5BA',
+          400: '#8CCA9F',
+          500: '#6DBF84',
+          600: '#4FAF6A',
+          700: '#3D8F54',
+          800: '#2C6F3E',
+          900: '#1B4F28',
+        },
+        secondary: {
+          50: '#FFF0EF',
+          100: '#FFE1DF',
+          200: '#FFC7C3',
+          300: '#FFACA7',
+          400: '#FF8E87',
+          500: '#FF6F61',
+          600: '#FF503F',
+          700: '#FF301D',
+          800: '#EB1700',
+          900: '#C91400',
+        },
+        accent: {
+          50: '#FEF9E7',
+          100: '#FDF3CF',
+          200: '#FBEDB7',
+          300: '#F9E69F',
+          400: '#F7DF87',
+          500: '#F4C430',
+          600: '#E7B308',
+          700: '#B58D06',
+          800: '#846605',
+          900: '#524003',
+        },
+        neutral: {
+          50: '#F8F8F8',
+          100: '#EFEFEF',
+          200: '#DDDDDD',
+          300: '#C0C0C0',
+          400: '#A7A7A7',
+          500: '#8E8E8E',
+          600: '#757575',
+          700: '#5C5C5C',
+          800: '#434343',
+          900: '#333333',
+        },
+        success: {
+          100: '#DCFCE7',
+          500: '#22C55E',
+          900: '#14532D',
+        },
+        warning: {
+          100: '#FEF3C7',
+          500: '#F59E0B',
+          900: '#78350F',
+        },
+        error: {
+          100: '#FEE2E2',
+          500: '#EF4444',
+          900: '#7F1D1D',
+        },
+      },
+      fontFamily: {
+        sans: ['Poppins', 'sans-serif'],
+      },
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '5xl': ['3rem', { lineHeight: '1' }],
+      },
+      boxShadow: {
+        card: '0 4px 12px rgba(0, 0, 0, 0.06)',
+        'card-hover': '0 8px 16px rgba(0, 0, 0, 0.1)',
+      },
+      borderRadius: {
+        'card': '0.75rem',
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+    },
+  },
+  plugins: [],
+};
