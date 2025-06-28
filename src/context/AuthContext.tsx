@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Mock user data - in a real app, this would come from your backend
 const MOCK_USERS = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'John Donor',
     email: 'donor@example.com',
     password: 'password123',
@@ -43,7 +43,7 @@ const MOCK_USERS = [
     profileImage: 'https://i.pravatar.cc/150?img=1',
   },
   {
-    id: '2',
+    id: '550e8400-e29b-41d4-a716-446655440002',
     name: 'Sarah Recipient',
     email: 'recipient@example.com',
     password: 'password123',
@@ -56,7 +56,7 @@ const MOCK_USERS = [
     profileImage: 'https://i.pravatar.cc/150?img=5',
   },
   {
-    id: '3',
+    id: '550e8400-e29b-41d4-a716-446655440003',
     name: 'Mike Rider',
     email: 'rider@example.com',
     password: 'password123',
@@ -69,7 +69,7 @@ const MOCK_USERS = [
     profileImage: 'https://i.pravatar.cc/150?img=8',
   },
   {
-    id: '4',
+    id: '550e8400-e29b-41d4-a716-446655440004',
     name: 'Admin User',
     email: 'admin@example.com',
     password: 'password123',
@@ -128,10 +128,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Email already in use');
       }
       
+      // Generate a new UUID for the user
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+      
       // In a real app, you would send this data to your backend
       // For this mock version, we'll just create a new user object
       const newUser: User = {
-        id: String(MOCK_USERS.length + 1),
+        id: generateUUID(),
         name: userData.name || 'User',
         email: userData.email || '',
         role: userData.role || 'recipient',
