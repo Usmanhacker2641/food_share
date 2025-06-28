@@ -324,7 +324,10 @@ export async function createDonation(data: DonationFormData): Promise<DonationWi
           status: 'available',
         },
       ])
-      .select()
+      .select(`
+        *,
+        donor:users!donor_id(name)
+      `)
       .single();
 
     if (error) throw error;
@@ -366,9 +369,10 @@ export async function createDonation(data: DonationFormData): Promise<DonationWi
       images = insertedImages || [];
     }
 
-    const donationWithImages = {
+    const donationWithImages: DonationWithImages = {
       ...donation,
       images,
+      donor_name: (donation as any).donor?.name || 'Unknown Donor',
     };
 
     // Trigger real-time update for Supabase users
@@ -399,13 +403,18 @@ export async function getDonations(): Promise<DonationWithImages[]> {
       .from('donations')
       .select(`
         *,
-        images:donation_images(*)
+        images:donation_images(*),
+        donor:users!donor_id(name)
       `)
       .eq('status', 'available')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    return (data || []).map(donation => ({
+      ...donation,
+      donor_name: (donation as any).donor?.name || 'Unknown Donor',
+    }));
   } catch (error) {
     console.error('Error fetching donations:', error);
     // Return mock data as fallback for any error (including network errors)
@@ -429,13 +438,18 @@ export async function getDonationById(id: string): Promise<DonationWithImages | 
       .from('donations')
       .select(`
         *,
-        images:donation_images(*)
+        images:donation_images(*),
+        donor:users!donor_id(name)
       `)
       .eq('id', id)
       .single();
 
     if (error) throw error;
-    return data;
+    
+    return {
+      ...data,
+      donor_name: (data as any).donor?.name || 'Unknown Donor',
+    };
   } catch (error) {
     console.error('Error fetching donation:', error);
     // Return mock data as fallback
@@ -508,13 +522,18 @@ export async function getUserDonations(userId: string): Promise<DonationWithImag
       .from('donations')
       .select(`
         *,
-        images:donation_images(*)
+        images:donation_images(*),
+        donor:users!donor_id(name)
       `)
       .eq('donor_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    return (data || []).map(donation => ({
+      ...donation,
+      donor_name: (donation as any).donor?.name || 'Unknown Donor',
+    }));
   } catch (error) {
     console.error('Error fetching user donations:', error);
     return globalDonations.filter(d => d.donor_id === userId);
@@ -532,13 +551,18 @@ export async function getUserRequests(userId: string): Promise<DonationWithImage
       .from('donations')
       .select(`
         *,
-        images:donation_images(*)
+        images:donation_images(*),
+        donor:users!donor_id(name)
       `)
       .eq('recipient_id', userId)
       .order('updated_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    return (data || []).map(donation => ({
+      ...donation,
+      donor_name: (donation as any).donor?.name || 'Unknown Donor',
+    }));
   } catch (error) {
     console.error('Error fetching user requests:', error);
     return globalDonations.filter(d => d.recipient_id === userId);

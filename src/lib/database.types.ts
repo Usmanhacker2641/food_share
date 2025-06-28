@@ -9,6 +9,41 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          name: string
+          role: string
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          profile_image: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          role?: string
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          profile_image?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          role?: string
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          profile_image?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       donations: {
         Row: {
           id: string
