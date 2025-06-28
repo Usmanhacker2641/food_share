@@ -27,6 +27,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// UUID validation function
+const isValidUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 // Mock user data - in a real app, this would come from your backend
 const MOCK_USERS = [
   {
@@ -86,7 +92,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for saved user in localStorage (simulating persistent sessions)
     const savedUser = localStorage.getItem('foodShareUser');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        
+        // Validate that the user ID is a proper UUID
+        if (parsedUser.id && isValidUUID(parsedUser.id)) {
+          setUser(parsedUser);
+        } else {
+          // Clear invalid user data from localStorage
+          console.warn('Invalid user ID format detected, clearing localStorage');
+          localStorage.removeItem('foodShareUser');
+          setUser(null);
+        }
+      } catch (error) {
+        // Clear corrupted data from localStorage
+        console.error('Error parsing saved user data:', error);
+        localStorage.removeItem('foodShareUser');
+        setUser(null);
+      }
     }
     setIsLoading(false);
   }, []);
