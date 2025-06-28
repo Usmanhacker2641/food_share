@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Leaf, Loader2 } from 'lucide-react';
+import { Leaf, Loader2, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
 
@@ -9,6 +9,18 @@ interface LoginForm {
   email: string;
   password: string;
 }
+
+// Helper function to check if Supabase is properly configured
+const isSupabaseConfigured = (): boolean => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  return !(!supabaseUrl || !supabaseAnonKey || 
+    supabaseUrl === 'https://placeholder.supabase.co' || 
+    supabaseAnonKey === 'placeholder_key' ||
+    supabaseUrl === 'your_supabase_url_here' || 
+    supabaseAnonKey === 'your_supabase_anon_key_here');
+};
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -32,16 +44,37 @@ const Login: React.FC = () => {
         message: 'You have successfully logged in.',
       });
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'An error occurred during login. Please try again.';
+      
+      if (error.message?.includes('Invalid login credentials') || error.message?.includes('Invalid credentials')) {
+        if (isSupabaseConfigured()) {
+          errorMessage = 'Invalid email or password. Please check your credentials or create a new account.';
+        } else {
+          errorMessage = 'Invalid credentials. Try using the demo accounts or create a new account.';
+        }
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account before logging in.';
+      } else if (error.message?.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       addNotification({
         type: 'error',
         title: 'Login Failed',
-        message: 'Invalid email or password. Please try again.',
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const supabaseConfigured = isSupabaseConfigured();
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -58,6 +91,24 @@ const Login: React.FC = () => {
               Sign in to your account to continue
             </p>
           </div>
+
+          {/* Demo Accounts Info */}
+          {!supabaseConfigured && (
+            <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Accounts Available</h3>
+                  <div className="text-xs text-blue-800 space-y-1">
+                    <div><strong>Donor:</strong> donor@example.com / password123</div>
+                    <div><strong>Recipient:</strong> recipient@example.com / password123</div>
+                    <div><strong>Rider:</strong> rider@example.com / password123</div>
+                    <div><strong>Admin:</strong> admin@example.com / password123</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Login Form */}
           <div className="rounded-lg bg-white p-8 shadow-card">
@@ -115,12 +166,14 @@ const Login: React.FC = () => {
                   </label>
                 </div>
 
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-primary-600 hover:text-primary-500"
-                >
-                  Forgot password?
-                </Link>
+                {supabaseConfigured && (
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-primary-600 hover:text-primary-500"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
               </div>
 
               <button
