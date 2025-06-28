@@ -131,7 +131,7 @@ const Donate: React.FC = () => {
         images: selectedFiles || undefined,
       };
 
-      await createDonation(formDataWithImages, user.id);
+      await createDonation(formDataWithImages);
 
       addNotification({
         type: 'success',

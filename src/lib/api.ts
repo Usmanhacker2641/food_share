@@ -247,7 +247,7 @@ const convertFilesToBase64 = async (files: FileList): Promise<string[]> => {
 };
 
 // Enhanced function to create donation with real-time updates
-export async function createDonation(data: DonationFormData, userId: string): Promise<DonationWithImages> {
+export async function createDonation(data: DonationFormData): Promise<DonationWithImages> {
   // Check if Supabase is configured before attempting any operations
   if (!isSupabaseConfigured()) {
     console.warn('Supabase not configured, using enhanced mock data with persistence');
@@ -271,7 +271,7 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
       pickup_address: data.pickup_address,
       pickup_instructions: data.pickup_instructions || null,
       status: 'available',
-      donor_id: userId,
+      donor_id: 'mock-user-id',
       recipient_id: null,
       rider_id: null,
       created_at: new Date().toISOString(),
@@ -302,6 +302,13 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
   }
 
   try {
+    // Get the current authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
     // Use Supabase if configured
     const { data: donation, error } = await supabase
       .from('donations')
@@ -313,7 +320,7 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
           expiry_date: data.expiry_date,
           pickup_address: data.pickup_address,
           pickup_instructions: data.pickup_instructions,
-          donor_id: userId,
+          donor_id: user.id, // Use the authenticated user's ID
           status: 'available',
         },
       ])
