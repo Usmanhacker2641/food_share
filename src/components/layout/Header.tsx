@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Leaf, Menu, X, LogOut, User } from 'lucide-react';
+import { Leaf, Menu, X, LogOut, User, Bell, Heart } from 'lucide-react';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -58,9 +58,9 @@ const Header: React.FC = () => {
   return (
     <header 
       className={cn(
-        'fixed top-0 left-0 right-0 z-40 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
         isScrolled 
-          ? 'bg-white shadow-md py-2' 
+          ? 'bg-white/95 backdrop-blur-lg shadow-lg py-2' 
           : 'bg-transparent py-4'
       )}
     >
@@ -69,25 +69,50 @@ const Header: React.FC = () => {
           {/* Logo */}
           <Link 
             to="/" 
-            className="flex items-center gap-2 text-primary-700 transition-colors hover:text-primary-600"
+            className="group flex items-center gap-3 transition-all duration-300"
           >
-            <Leaf className="h-7 w-7" />
-            <span className="text-xl font-semibold">FoodShare</span>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
+              <div className="relative bg-gradient-to-r from-primary-500 to-accent-500 p-2 rounded-xl">
+                <Leaf className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                FoodShare
+              </span>
+              <span className="text-xs text-neutral-500 -mt-1">Share • Care • Impact</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:block">
-            <ul className="flex items-center space-x-8">
+            <ul className="flex items-center space-x-1">
               {navItems.map((item) => (
                 <li key={item.path}>
                   <NavLink
                     to={item.path}
                     className={({ isActive }) => cn(
-                      'text-neutral-700 transition-colors hover:text-primary-600',
-                      isActive && 'font-medium text-primary-700'
+                      'relative px-4 py-2 rounded-xl font-medium transition-all duration-300',
+                      isActive 
+                        ? 'text-primary-600 bg-primary-50' 
+                        : 'text-neutral-700 hover:text-primary-600 hover:bg-primary-50/50'
                     )}
                   >
-                    {item.name}
+                    {({ isActive }) => (
+                      <>
+                        {item.name}
+                        {isActive && (
+                          <motion.div
+                            className="absolute bottom-0 left-1/2 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+                            layoutId="activeTab"
+                            initial={{ width: 0 }}
+                            animate={{ width: '80%' }}
+                            style={{ x: '-50%' }}
+                          />
+                        )}
+                      </>
+                    )}
                   </NavLink>
                 </li>
               ))}
@@ -95,15 +120,24 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Auth Buttons / User Menu */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {isAuthenticated ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                {/* Notifications */}
+                <button className="relative p-2 rounded-xl text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-all duration-300">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-secondary-500 to-pink-500 rounded-full text-xs text-white flex items-center justify-center">
+                    3
+                  </span>
+                </button>
+
+                {/* Profile */}
                 <NavLink
                   to="/profile"
                   className={({ isActive }) => cn(
-                    'flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
+                    'flex items-center gap-3 rounded-xl px-4 py-2 transition-all duration-300',
                     isActive 
-                      ? 'bg-primary-100 text-primary-700' 
+                      ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white shadow-lg' 
                       : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
                   )}
                 >
@@ -111,18 +145,22 @@ const Header: React.FC = () => {
                     <img 
                       src={user.profileImage} 
                       alt={user.name}
-                      className="h-8 w-8 rounded-full object-cover"
+                      className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
                     />
                   ) : (
-                    <User className="h-5 w-5" />
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary-400 to-accent-400 flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
                   )}
                   <span className="font-medium">{user?.name?.split(' ')[0]}</span>
                 </NavLink>
+
+                {/* Logout */}
                 <button 
                   onClick={logout}
-                  className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-neutral-700 transition-colors hover:bg-neutral-50"
+                  className="flex items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-neutral-700 transition-all duration-300 hover:bg-neutral-50 hover:border-neutral-300"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </button>
               </div>
@@ -130,15 +168,16 @@ const Header: React.FC = () => {
               <>
                 <Link 
                   to="/login" 
-                  className="rounded-lg px-4 py-2 text-neutral-700 transition-colors hover:bg-neutral-50"
+                  className="rounded-xl px-6 py-2 font-medium text-neutral-700 transition-all duration-300 hover:bg-neutral-50"
                 >
                   Login
                 </Link>
                 <Link 
                   to="/register" 
-                  className="rounded-lg bg-secondary-500 px-4 py-2 text-white transition-colors hover:bg-secondary-600"
+                  className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 px-6 py-2 font-medium text-white transition-all duration-300 hover:shadow-glow"
                 >
-                  Register
+                  <span className="relative z-10">Register</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent-500 to-primary-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
               </>
             )}
@@ -146,7 +185,7 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="flex items-center justify-center rounded-lg p-2 text-neutral-700 md:hidden"
+            className="flex items-center justify-center rounded-xl p-2 text-neutral-700 md:hidden hover:bg-primary-50 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -163,20 +202,20 @@ const Header: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white shadow-lg md:hidden"
+            className="bg-white/95 backdrop-blur-lg shadow-lg md:hidden border-t border-neutral-200"
           >
-            <div className="container mx-auto px-4 py-4">
+            <div className="container mx-auto px-4 py-6">
               <nav>
-                <ul className="flex flex-col space-y-4">
+                <ul className="flex flex-col space-y-2">
                   {navItems.map((item) => (
                     <li key={item.path}>
                       <NavLink
                         to={item.path}
                         className={({ isActive }) => cn(
-                          'block w-full rounded-lg p-3 transition-colors',
+                          'block w-full rounded-xl p-4 transition-all duration-300',
                           isActive 
-                            ? 'bg-primary-100 font-medium text-primary-700'
-                            : 'text-neutral-700 hover:bg-neutral-50'
+                            ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white font-medium shadow-lg'
+                            : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
                         )}
                       >
                         {item.name}
@@ -190,10 +229,10 @@ const Header: React.FC = () => {
                         <NavLink
                           to="/profile"
                           className={({ isActive }) => cn(
-                            'flex items-center gap-2 rounded-lg p-3 transition-colors',
+                            'flex items-center gap-3 rounded-xl p-4 transition-all duration-300',
                             isActive 
-                              ? 'bg-primary-100 font-medium text-primary-700'
-                              : 'text-neutral-700 hover:bg-neutral-50'
+                              ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white font-medium shadow-lg'
+                              : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
                           )}
                         >
                           <User className="h-5 w-5" />
@@ -203,7 +242,7 @@ const Header: React.FC = () => {
                       <li>
                         <button
                           onClick={logout}
-                          className="flex w-full items-center gap-2 rounded-lg p-3 text-left text-neutral-700 transition-colors hover:bg-neutral-50"
+                          className="flex w-full items-center gap-3 rounded-xl p-4 text-left text-neutral-700 transition-all duration-300 hover:bg-neutral-50"
                         >
                           <LogOut className="h-5 w-5" />
                           <span>Logout</span>
@@ -215,7 +254,7 @@ const Header: React.FC = () => {
                       <li>
                         <Link
                           to="/login"
-                          className="block w-full rounded-lg p-3 text-neutral-700 transition-colors hover:bg-neutral-50"
+                          className="block w-full rounded-xl p-4 text-neutral-700 transition-all duration-300 hover:bg-neutral-50"
                         >
                           Login
                         </Link>
@@ -223,7 +262,7 @@ const Header: React.FC = () => {
                       <li>
                         <Link
                           to="/register"
-                          className="block w-full rounded-lg bg-secondary-500 p-3 text-center text-white transition-colors hover:bg-secondary-600"
+                          className="block w-full rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 p-4 text-center text-white font-medium transition-all duration-300 hover:shadow-glow"
                         >
                           Register
                         </Link>
