@@ -101,6 +101,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Helper function to create user object from Supabase data
+  const createUserFromSupabase = (authUser: any, userProfile?: any): User => {
+    return {
+      id: authUser.id,
+      name: userProfile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+      email: authUser.email || '',
+      role: (userProfile?.role || authUser.user_metadata?.role || 'recipient') as UserRole,
+      ...(userProfile?.location_address && {
+        location: {
+          lat: userProfile.location_lat || 0,
+          lng: userProfile.location_lng || 0,
+          address: userProfile.location_address,
+        }
+      }),
+      ...(userProfile?.profile_image && { profileImage: userProfile.profile_image }),
+    };
+  };
+
+  // Helper function to fetch user profile
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      return userProfile;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  };
+  
   useEffect(() => {
     const initializeAuth = async () => {
       if (isSupabaseConfigured()) {
@@ -112,40 +151,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Error getting session:', error);
           } else if (session?.user) {
             // Fetch user profile from users table
-            const { data: userProfile, error: profileError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profileError) {
-              console.error('Error fetching user profile:', profileError);
-              // Create user object from auth data if profile doesn't exist
-              const supabaseUser: User = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                role: (session.user.user_metadata?.role as UserRole) || 'recipient',
-              };
-              setUser(supabaseUser);
-            } else {
-              // Create user object from profile data
-              const supabaseUser: User = {
-                id: userProfile.id,
-                name: userProfile.name,
-                email: session.user.email || '',
-                role: userProfile.role as UserRole,
-                ...(userProfile.location_address && {
-                  location: {
-                    lat: userProfile.location_lat || 0,
-                    lng: userProfile.location_lng || 0,
-                    address: userProfile.location_address,
-                  }
-                }),
-                ...(userProfile.profile_image && { profileImage: userProfile.profile_image }),
-              };
-              setUser(supabaseUser);
-            }
+            const userProfile = await fetchUserProfile(session.user.id);
+            const supabaseUser = createUserFromSupabase(session.user, userProfile);
+            setUser(supabaseUser);
           }
         } catch (error) {
           console.error('Error initializing Supabase auth:', error);
@@ -185,40 +193,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         async (event, session) => {
           if (session?.user) {
             // Fetch user profile from users table
-            const { data: userProfile, error: profileError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profileError) {
-              console.error('Error fetching user profile:', profileError);
-              // Create user object from auth data if profile doesn't exist
-              const supabaseUser: User = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                role: (session.user.user_metadata?.role as UserRole) || 'recipient',
-              };
-              setUser(supabaseUser);
-            } else {
-              // Create user object from profile data
-              const supabaseUser: User = {
-                id: userProfile.id,
-                name: userProfile.name,
-                email: session.user.email || '',
-                role: userProfile.role as UserRole,
-                ...(userProfile.location_address && {
-                  location: {
-                    lat: userProfile.location_lat || 0,
-                    lng: userProfile.location_lng || 0,
-                    address: userProfile.location_address,
-                  }
-                }),
-                ...(userProfile.profile_image && { profileImage: userProfile.profile_image }),
-              };
-              setUser(supabaseUser);
-            }
+            const userProfile = await fetchUserProfile(session.user.id);
+            const supabaseUser = createUserFromSupabase(session.user, userProfile);
+            setUser(supabaseUser);
           } else {
             setUser(null);
           }
@@ -255,40 +232,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (data.user) {
           // Fetch user profile from users table
-          const { data: userProfile, error: profileError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            // Create user object from auth data if profile doesn't exist
-            const supabaseUser: User = {
-              id: data.user.id,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
-              email: data.user.email || '',
-              role: (data.user.user_metadata?.role as UserRole) || 'recipient',
-            };
-            setUser(supabaseUser);
-          } else {
-            // Create user object from profile data
-            const supabaseUser: User = {
-              id: userProfile.id,
-              name: userProfile.name,
-              email: data.user.email || '',
-              role: userProfile.role as UserRole,
-              ...(userProfile.location_address && {
-                location: {
-                  lat: userProfile.location_lat || 0,
-                  lng: userProfile.location_lng || 0,
-                  address: userProfile.location_address,
-                }
-              }),
-              ...(userProfile.profile_image && { profileImage: userProfile.profile_image }),
-            };
-            setUser(supabaseUser);
-          }
+          const userProfile = await fetchUserProfile(data.user.id);
+          const supabaseUser = createUserFromSupabase(data.user, userProfile);
+          setUser(supabaseUser);
         }
       } else {
         // Fall back to mock authentication
@@ -341,11 +287,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (data.user) {
-          // The user profile will be created automatically by the trigger
-          // Wait a moment for the trigger to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Wait a moment for the trigger to create the user profile
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Update the user profile with additional data
+          // Update the user profile with additional data if provided
           if (userData.location || userData.profileImage) {
             const { error: updateError } = await supabase
               .from('users')
@@ -356,6 +301,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   location_lng: userData.location.lng,
                 }),
                 ...(userData.profileImage && { profile_image: userData.profileImage }),
+                updated_at: new Date().toISOString(),
               })
               .eq('id', data.user.id);
 
@@ -364,14 +310,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
 
-          const supabaseUser: User = {
-            id: data.user.id,
-            name: userData.name || data.user.email?.split('@')[0] || 'User',
-            email: data.user.email || '',
-            role: userData.role || 'recipient',
-            ...(userData.location && { location: userData.location }),
-            ...(userData.profileImage && { profileImage: userData.profileImage }),
-          };
+          // Fetch the complete user profile
+          const userProfile = await fetchUserProfile(data.user.id);
+          const supabaseUser = createUserFromSupabase(data.user, userProfile);
           setUser(supabaseUser);
         }
       } else {

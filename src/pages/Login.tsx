@@ -97,9 +97,24 @@ const Login: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-green-800">Connected to Supabase</p>
-                    <p className="text-xs text-green-600">Use your registered account credentials</p>
+                    <p className="text-xs text-green-600">
+                      {supabaseConfigured ? 'Create an account or use existing credentials' : 'Use demo accounts below'}
+                    </p>
                   </div>
                 </div>
+                {supabaseConfigured && (
+                  <div className="mt-3 pt-3 border-t border-green-200">
+                    <p className="text-xs text-green-700 mb-2">
+                      <strong>New to FoodShare?</strong> 
+                      <Link to="/register" className="ml-1 underline hover:text-green-800">
+                        Create your account here
+                      </Link>
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Already have an account? Enter your email and password below.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 p-4">
