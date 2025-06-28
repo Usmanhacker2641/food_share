@@ -240,7 +240,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase login error:', error);
+          throw new Error(error.message);
+        }
 
         if (data.user) {
           // Fetch user profile from users table
@@ -319,7 +322,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase registration error:', error);
+          throw new Error(error.message);
+        }
 
         if (data.user) {
           // The user profile will be created automatically by the trigger
@@ -401,7 +407,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     if (isSupabaseConfigured()) {
       // Use Supabase logout
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
     } else {
       // Fall back to mock logout
       localStorage.removeItem('foodShareUser');
