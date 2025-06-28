@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MapPin, Clock, User, Heart, Star, Sparkles, Calendar, Package } from 'lucide-react';
-import { getDonations, DonationWithImages, updateDonationStatus } from '../lib/api';
+import { Search, Filter, MapPin, Clock, User, Heart, Star, Sparkles, Calendar, Package, RefreshCw } from 'lucide-react';
+import { getDonations, DonationWithImages, updateDonationStatus, subscribeToDonationUpdates } from '../lib/api';
 import { useNotifications } from '../context/NotificationsContext';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../lib/utils';
@@ -11,9 +11,11 @@ const BrowseDonations: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [donations, setDonations] = useState<DonationWithImages[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { addNotification } = useNotifications();
   const { user, isAuthenticated } = useAuth();
 
+  // Initial load of donations
   useEffect(() => {
     const fetchDonations = async () => {
       try {
@@ -34,14 +36,51 @@ const BrowseDonations: React.FC = () => {
     fetchDonations();
   }, [addNotification]);
 
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const unsubscribe = subscribeToDonationUpdates((updatedDonations) => {
+      setDonations(updatedDonations);
+      setIsRefreshing(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const data = await getDonations();
+      setDonations(data);
+      addNotification({
+        type: 'success',
+        title: 'Refreshed! 🔄',
+        message: 'Donations list has been updated.',
+      });
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to refresh donations.',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const filteredDonations = donations.filter(donation => {
     const matchesSearch = donation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         donation.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         donation.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (donation.donor_name && donation.donor_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (selectedFilter === 'all') return matchesSearch;
     if (selectedFilter === 'expiring-soon') {
       const daysUntilExpiry = Math.ceil((new Date(donation.expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       return matchesSearch && daysUntilExpiry <= 3;
+    }
+    if (selectedFilter === 'fresh') {
+      const hoursOld = Math.floor((new Date().getTime() - new Date(donation.created_at).getTime()) / (1000 * 60 * 60));
+      return matchesSearch && hoursOld <= 24;
     }
     return matchesSearch;
   });
@@ -58,16 +97,23 @@ const BrowseDonations: React.FC = () => {
 
     if (!user) return;
 
+    // Prevent users from requesting their own donations
+    if (donation.donor_id === user.id) {
+      addNotification({
+        type: 'warning',
+        title: 'Cannot Request Own Donation',
+        message: 'You cannot request your own food donation.',
+      });
+      return;
+    }
+
     try {
       await updateDonationStatus(donation.id, 'claimed', user.id);
-      
-      // Update local state
-      setDonations(prev => prev.filter(d => d.id !== donation.id));
       
       addNotification({
         type: 'success',
         title: 'Request Sent! 🎉',
-        message: 'Your food request has been sent to the donor.',
+        message: `Your request for "${donation.title}" has been sent to ${donation.donor_name || 'the donor'}.`,
       });
     } catch (error) {
       addNotification({
@@ -87,6 +133,17 @@ const BrowseDonations: React.FC = () => {
     if (days <= 1) return 'from-red-500 to-pink-500';
     if (days <= 3) return 'from-orange-500 to-yellow-500';
     return 'from-green-500 to-emerald-500';
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just posted';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
   };
 
   return (
@@ -113,6 +170,14 @@ const BrowseDonations: React.FC = () => {
           <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
             Find fresh food donations in your community and make a positive impact
           </p>
+          
+          {/* Live counter */}
+          <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-lg px-4 py-2 shadow-lg border border-white/20">
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-neutral-700">
+              {donations.length} donations available now
+            </span>
+          </div>
         </motion.div>
 
         {/* Search and Filter Section */}
@@ -151,6 +216,17 @@ const BrowseDonations: React.FC = () => {
                 All ({donations.length})
               </button>
               <button
+                onClick={() => setSelectedFilter('fresh')}
+                className={`flex items-center gap-2 rounded-2xl px-6 py-3 font-medium transition-all duration-300 ${
+                  selectedFilter === 'fresh'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                    : 'bg-white/70 text-neutral-700 hover:bg-white hover:shadow-md'
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+                Fresh (24h)
+              </button>
+              <button
                 onClick={() => setSelectedFilter('expiring-soon')}
                 className={`flex items-center gap-2 rounded-2xl px-6 py-3 font-medium transition-all duration-300 ${
                   selectedFilter === 'expiring-soon'
@@ -160,6 +236,15 @@ const BrowseDonations: React.FC = () => {
               >
                 <Clock className="h-4 w-4" />
                 Expiring Soon
+              </button>
+              
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3 font-medium text-neutral-700 transition-all duration-300 hover:bg-white hover:shadow-md disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -179,6 +264,7 @@ const BrowseDonations: React.FC = () => {
               {filteredDonations.map((donation, index) => {
                 const daysUntilExpiry = getDaysUntilExpiry(donation.expiry_date);
                 const isExpiringSoon = daysUntilExpiry <= 3;
+                const isOwnDonation = user && donation.donor_id === user.id;
                 
                 return (
                   <motion.div
@@ -212,10 +298,17 @@ const BrowseDonations: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Favorite button */}
-                      <button className="absolute top-4 left-4 rounded-full bg-white/90 p-2 text-neutral-600 backdrop-blur-sm transition-all duration-300 hover:bg-white hover:text-red-500 hover:scale-110">
-                        <Heart className="h-4 w-4" />
-                      </button>
+                      {/* Time posted badge */}
+                      <div className="absolute top-4 left-4 rounded-full bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-medium text-neutral-700">
+                        {getTimeAgo(donation.created_at)}
+                      </div>
+
+                      {/* Own donation indicator */}
+                      {isOwnDonation && (
+                        <div className="absolute bottom-4 left-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-1 text-xs font-bold text-white">
+                          Your Donation
+                        </div>
+                      )}
                     </div>
                     
                     <div className="p-6">
@@ -228,6 +321,16 @@ const BrowseDonations: React.FC = () => {
                           <span className="text-sm font-medium text-neutral-600">4.8</span>
                         </div>
                       </div>
+                      
+                      {/* Donor name */}
+                      {donation.donor_name && (
+                        <div className="mb-2 flex items-center gap-2">
+                          <User className="h-4 w-4 text-neutral-400" />
+                          <span className="text-sm font-medium text-neutral-600">
+                            by {donation.donor_name}
+                          </span>
+                        </div>
+                      )}
                       
                       <p className="mb-4 text-neutral-600 line-clamp-2 leading-relaxed">
                         {donation.description}
@@ -266,20 +369,26 @@ const BrowseDonations: React.FC = () => {
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-neutral-500">
-                          <User className="h-4 w-4" />
+                          <Clock className="h-4 w-4" />
                           <span>Posted {formatDate(donation.created_at)}</span>
                         </div>
                         
-                        <button 
-                          onClick={() => handleRequestFood(donation)}
-                          className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-secondary-500 to-pink-500 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-                        >
-                          <span className="relative z-10 flex items-center gap-2">
-                            <Heart className="h-4 w-4" />
-                            Request Food
-                          </span>
-                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-secondary-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </button>
+                        {isOwnDonation ? (
+                          <div className="rounded-2xl bg-gradient-to-r from-blue-100 to-purple-100 px-6 py-3 font-semibold text-blue-700">
+                            Your Donation
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => handleRequestFood(donation)}
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-secondary-500 to-pink-500 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              <Heart className="h-4 w-4" />
+                              Request Food
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-secondary-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -300,12 +409,19 @@ const BrowseDonations: React.FC = () => {
               <Search className="h-12 w-12 text-primary-500" />
             </div>
             <h3 className="text-2xl font-bold text-neutral-900 mb-2">No donations found</h3>
-            <p className="text-lg text-neutral-600 max-w-md mx-auto">
+            <p className="text-lg text-neutral-600 max-w-md mx-auto mb-4">
               {searchTerm 
                 ? `No food donations match "${searchTerm}". Try adjusting your search.`
                 : 'No food donations are currently available. Check back later for fresh opportunities to help!'
               }
             </p>
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 to-accent-500 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh Donations
+            </button>
           </motion.div>
         )}
       </div>

@@ -6,6 +6,9 @@ type DonationImage = Database['public']['Tables']['donation_images']['Row'];
 
 export interface DonationWithImages extends Donation {
   images: DonationImage[];
+  donor_name?: string;
+  recipient_name?: string;
+  rider_name?: string;
 }
 
 export interface DonationFormData {
@@ -18,7 +21,7 @@ export interface DonationFormData {
   images?: FileList;
 }
 
-// Mock donations for demonstration when Supabase is not connected
+// Enhanced mock donations with more variety for demonstration
 const mockDonations: DonationWithImages[] = [
   {
     id: '1',
@@ -34,6 +37,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T10:00:00Z',
     updated_at: '2024-12-18T10:00:00Z',
+    donor_name: 'John Donor',
     images: [
       {
         id: '1',
@@ -57,6 +61,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T08:00:00Z',
     updated_at: '2024-12-18T08:00:00Z',
+    donor_name: 'Sarah\'s Bakery',
     images: [
       {
         id: '2',
@@ -80,6 +85,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T12:00:00Z',
     updated_at: '2024-12-18T12:00:00Z',
+    donor_name: 'Bella Vista Restaurant',
     images: [
       {
         id: '3',
@@ -103,6 +109,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T14:00:00Z',
     updated_at: '2024-12-18T14:00:00Z',
+    donor_name: 'Green Valley Farm',
     images: [
       {
         id: '4',
@@ -126,6 +133,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T16:00:00Z',
     updated_at: '2024-12-18T16:00:00Z',
+    donor_name: 'Sunshine Dairy',
     images: [
       {
         id: '5',
@@ -149,6 +157,7 @@ const mockDonations: DonationWithImages[] = [
     rider_id: null,
     created_at: '2024-12-18T18:00:00Z',
     updated_at: '2024-12-18T18:00:00Z',
+    donor_name: 'Community Food Hub',
     images: [
       {
         id: '6',
@@ -157,8 +166,59 @@ const mockDonations: DonationWithImages[] = [
         created_at: '2024-12-18T18:00:00Z'
       }
     ]
+  },
+  {
+    id: '7',
+    title: 'Organic Produce Box',
+    description: 'Mixed organic vegetables and fruits from local farm. Includes seasonal produce that\'s perfect for families.',
+    quantity: '10 kg',
+    expiry_date: '2024-12-23T00:00:00Z',
+    pickup_address: '555 Farm Road, Long Island, NY 11701',
+    pickup_instructions: 'Farm stand pickup, look for the red barn',
+    status: 'available',
+    donor_id: '7',
+    recipient_id: null,
+    rider_id: null,
+    created_at: '2024-12-18T20:00:00Z',
+    updated_at: '2024-12-18T20:00:00Z',
+    donor_name: 'Organic Harvest Farm',
+    images: [
+      {
+        id: '7',
+        donation_id: '7',
+        url: 'https://images.pexels.com/photos/1435904/pexels-photo-1435904.jpeg?auto=compress&cs=tinysrgb&w=800',
+        created_at: '2024-12-18T20:00:00Z'
+      }
+    ]
+  },
+  {
+    id: '8',
+    title: 'Grocery Store Surplus',
+    description: 'Mixed grocery items including packaged foods, snacks, and beverages. All items are within expiration dates.',
+    quantity: '25 items',
+    expiry_date: '2024-12-24T00:00:00Z',
+    pickup_address: '888 Main Street, Manhattan, NY 10001',
+    pickup_instructions: 'Customer service desk pickup',
+    status: 'available',
+    donor_id: '8',
+    recipient_id: null,
+    rider_id: null,
+    created_at: '2024-12-18T22:00:00Z',
+    updated_at: '2024-12-18T22:00:00Z',
+    donor_name: 'FreshMart Grocery',
+    images: [
+      {
+        id: '8',
+        donation_id: '8',
+        url: 'https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=800',
+        created_at: '2024-12-18T22:00:00Z'
+      }
+    ]
   }
 ];
+
+// Global storage for donations (simulates database persistence)
+let globalDonations = [...mockDonations];
 
 // Helper function to check if Supabase is properly configured
 const isSupabaseConfigured = (): boolean => {
@@ -186,10 +246,11 @@ const convertFilesToBase64 = async (files: FileList): Promise<string[]> => {
   return Promise.all(promises);
 };
 
+// Enhanced function to create donation with real-time updates
 export async function createDonation(data: DonationFormData, userId: string): Promise<DonationWithImages> {
   // Check if Supabase is configured before attempting any operations
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured, using mock data');
+    console.warn('Supabase not configured, using enhanced mock data with persistence');
     
     // Convert uploaded images to base64 for mock storage
     let imageUrls: string[] = [];
@@ -215,6 +276,7 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
       rider_id: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      donor_name: 'Current User', // In real app, this would be fetched from user data
       images: imageUrls.map((url, index) => ({
         id: `${Math.random().toString(36).substring(2, 9)}-${index}`,
         donation_id: '',
@@ -228,8 +290,14 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
       img.donation_id = newDonation.id;
     });
     
-    // Add to mock data
-    mockDonations.unshift(newDonation);
+    // Add to global storage (simulates database persistence across all users)
+    globalDonations.unshift(newDonation);
+    
+    // Trigger real-time update event (simulates real-time database updates)
+    window.dispatchEvent(new CustomEvent('donationCreated', { 
+      detail: newDonation 
+    }));
+    
     return newDonation;
   }
 
@@ -291,21 +359,32 @@ export async function createDonation(data: DonationFormData, userId: string): Pr
       images = insertedImages || [];
     }
 
-    return {
+    const donationWithImages = {
       ...donation,
       images,
     };
+
+    // Trigger real-time update for Supabase users
+    window.dispatchEvent(new CustomEvent('donationCreated', { 
+      detail: donationWithImages 
+    }));
+
+    return donationWithImages;
   } catch (error) {
     console.error('Error creating donation:', error);
     throw error;
   }
 }
 
+// Enhanced function to get all donations with real-time capabilities
 export async function getDonations(): Promise<DonationWithImages[]> {
   // Check if Supabase is configured before attempting any operations
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured, using mock data');
-    return mockDonations;
+    console.warn('Supabase not configured, using enhanced mock data');
+    // Return only available donations, sorted by creation date (newest first)
+    return globalDonations
+      .filter(donation => donation.status === 'available')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
   try {
@@ -323,15 +402,18 @@ export async function getDonations(): Promise<DonationWithImages[]> {
   } catch (error) {
     console.error('Error fetching donations:', error);
     // Return mock data as fallback for any error (including network errors)
-    return mockDonations;
+    return globalDonations
+      .filter(donation => donation.status === 'available')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 }
 
+// Enhanced function to get donation by ID
 export async function getDonationById(id: string): Promise<DonationWithImages | null> {
   // Check if Supabase is configured before attempting any operations
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured, using mock data');
-    const mockDonation = mockDonations.find(d => d.id === id);
+    console.warn('Supabase not configured, using enhanced mock data');
+    const mockDonation = globalDonations.find(d => d.id === id);
     return mockDonation || null;
   }
 
@@ -350,11 +432,12 @@ export async function getDonationById(id: string): Promise<DonationWithImages | 
   } catch (error) {
     console.error('Error fetching donation:', error);
     // Return mock data as fallback
-    const mockDonation = mockDonations.find(d => d.id === id);
+    const mockDonation = globalDonations.find(d => d.id === id);
     return mockDonation || null;
   }
 }
 
+// Enhanced function to update donation status with real-time updates
 export async function updateDonationStatus(
   id: string,
   status: string,
@@ -362,17 +445,24 @@ export async function updateDonationStatus(
 ): Promise<void> {
   // Check if Supabase is configured before attempting any operations
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured, using mock data');
+    console.warn('Supabase not configured, using enhanced mock data');
     // Update mock data
-    const donationIndex = mockDonations.findIndex(d => d.id === id);
+    const donationIndex = globalDonations.findIndex(d => d.id === id);
     if (donationIndex !== -1) {
-      mockDonations[donationIndex] = {
-        ...mockDonations[donationIndex],
+      const updatedDonation = {
+        ...globalDonations[donationIndex],
         status,
         updated_at: new Date().toISOString(),
         ...(status === 'claimed' && { recipient_id: userId }),
         ...(status === 'in_transit' && { rider_id: userId }),
       };
+      
+      globalDonations[donationIndex] = updatedDonation;
+      
+      // Trigger real-time update event
+      window.dispatchEvent(new CustomEvent('donationUpdated', { 
+        detail: { id, status, userId } 
+      }));
     }
     return;
   }
@@ -389,8 +479,100 @@ export async function updateDonationStatus(
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Trigger real-time update event
+    window.dispatchEvent(new CustomEvent('donationUpdated', { 
+      detail: { id, status, userId } 
+    }));
   } catch (error) {
     console.error('Error updating donation status:', error);
     throw error;
   }
+}
+
+// Function to get user's own donations
+export async function getUserDonations(userId: string): Promise<DonationWithImages[]> {
+  if (!isSupabaseConfigured()) {
+    return globalDonations.filter(d => d.donor_id === userId);
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('donations')
+      .select(`
+        *,
+        images:donation_images(*)
+      `)
+      .eq('donor_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching user donations:', error);
+    return globalDonations.filter(d => d.donor_id === userId);
+  }
+}
+
+// Function to get user's requested donations
+export async function getUserRequests(userId: string): Promise<DonationWithImages[]> {
+  if (!isSupabaseConfigured()) {
+    return globalDonations.filter(d => d.recipient_id === userId);
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('donations')
+      .select(`
+        *,
+        images:donation_images(*)
+      `)
+      .eq('recipient_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching user requests:', error);
+    return globalDonations.filter(d => d.recipient_id === userId);
+  }
+}
+
+// Function to subscribe to real-time donation updates
+export function subscribeToDonationUpdates(callback: (donations: DonationWithImages[]) => void) {
+  const handleDonationCreated = async () => {
+    const donations = await getDonations();
+    callback(donations);
+  };
+
+  const handleDonationUpdated = async () => {
+    const donations = await getDonations();
+    callback(donations);
+  };
+
+  // Listen for custom events (for mock data)
+  window.addEventListener('donationCreated', handleDonationCreated);
+  window.addEventListener('donationUpdated', handleDonationUpdated);
+
+  // If Supabase is configured, also listen to real-time updates
+  if (isSupabaseConfigured()) {
+    const channel = supabase
+      .channel('donations')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'donations' }, 
+        handleDonationCreated
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener('donationCreated', handleDonationCreated);
+      window.removeEventListener('donationUpdated', handleDonationUpdated);
+      supabase.removeChannel(channel);
+    };
+  }
+
+  return () => {
+    window.removeEventListener('donationCreated', handleDonationCreated);
+    window.removeEventListener('donationUpdated', handleDonationUpdated);
+  };
 }
