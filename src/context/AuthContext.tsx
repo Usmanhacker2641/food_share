@@ -241,8 +241,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (error) {
-          console.error('Supabase login error:', error);
-          throw new Error(error.message);
+          // Provide more specific error messages
+          if (error.message.includes('Invalid login credentials')) {
+            throw new Error('Invalid email or password. Please check your credentials and try again.');
+          } else if (error.message.includes('Email not confirmed')) {
+            throw new Error('Please check your email and click the confirmation link before signing in.');
+          } else if (error.message.includes('Too many requests')) {
+            throw new Error('Too many login attempts. Please wait a few minutes before trying again.');
+          } else {
+            throw new Error(`Login failed: ${error.message}`);
+          }
         }
 
         if (data.user) {
@@ -289,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
         
         if (!foundUser) {
-          throw new Error('Invalid credentials');
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
         }
         
         // Remove password before storing user data
@@ -323,8 +331,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (error) {
-          console.error('Supabase registration error:', error);
-          throw new Error(error.message);
+          if (error.message.includes('User already registered')) {
+            throw new Error('An account with this email already exists. Please try logging in instead.');
+          } else if (error.message.includes('Password should be at least')) {
+            throw new Error('Password must be at least 6 characters long.');
+          } else {
+            throw new Error(`Registration failed: ${error.message}`);
+          }
         }
 
         if (data.user) {
@@ -367,7 +380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check if email already exists
         if (MOCK_USERS.some(u => u.email === userData.email)) {
-          throw new Error('Email already in use');
+          throw new Error('An account with this email already exists. Please try logging in instead.');
         }
         
         // Generate a new UUID for the user
@@ -407,10 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     if (isSupabaseConfigured()) {
       // Use Supabase logout
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-      }
+      await supabase.auth.signOut();
     } else {
       // Fall back to mock logout
       localStorage.removeItem('foodShareUser');
